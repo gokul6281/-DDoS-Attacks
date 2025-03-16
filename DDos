@@ -1,0 +1,484 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import scale
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.manifold import TSNE
+
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+LDAP = pd.read_csv('/content/drive/My Drive/DDos_Dataset/LDAP11.csv')
+Portmap = pd.read_csv('/content/drive/My Drive/DDos_Dataset/Portmap1.csv')
+UDPLag=pd.read_csv('/content/drive/My Drive/DDos_Dataset/UDPLag11.csv')
+data = pd.concat([LDAP,Portmap,UDPLag], ignore_index = True)
+
+
+
+data.head(5)
+
+data.columns
+
+data.shape
+
+
+
+data.describe()
+
+
+# Drop Unnamed:0
+data = data.drop(['Unnamed: 0'], axis = 1)
+
+
+#Detect null values
+data_real = data.replace(np.inf, np.nan)
+data_real.isnull().sum().sum()
+data_ = data_real.dropna(axis=0)
+data_.isnull().sum().sum()
+
+
+data[' Label'].value_counts()
+
+labels = 'Syn', 'UDP', 'NetBIOS','Portmap','BENIGN','LDAP','UDPLag'
+sizes = [ len(data_[data_[' Label']=='Syn']),
+         len(data_[data_[' Label']=='UDP']), len(data_[data_[' Label']=='NetBIOS']),
+         len(data_[data_[' Label']=='Portmap']),
+         len(data_[data_[' Label']=='BENIGN']),len(data_[data_[' Label']=='LDAP']),len(data_[data_[' Label']=='UDPLag'])]
+colors = ['gold', 'green', 'lightcoral', 'lightskyblue','lemonchiffon','darkorange','blue']
+explode = ( 0, 0, 0.1,0,0,0,0)  # explode 1st slice
+
+# Plot
+plt.rcParams.update({'font.size': 22})
+plt.figure(figsize=(10,10))
+plt.pie(sizes, explode=explode, labels=labels, colors=colors,autopct='%1.1f%%', shadow=True, startangle=140)
+
+plt.axis('equal')
+plt.show()
+
+
+plt.figure(figsize=(20,16))
+sns.set(style="darkgrid")
+g1 = sns.countplot(x=' Label', hue=' Label', data=data_)
+gt = g1.twinx()
+gt = sns.pointplot(y=' Flow Packets/s', x=' Label', data=data_, color='black')
+gt.set_ylabel(" Flow Packets/s", fontsize=16)
+
+
+
+
+df = data_[[' Bwd Packets/s',' Total Fwd Packets','Total Length of Fwd Packets',' Flow Duration',' Total Length of Bwd Packets',' Total Backward Packets',' Protocol',' Inbound', ' Min Packet Length', ' Fwd Packet Length Min', ' Packet Length Mean', ' Fwd Packet Length Max', ' Average Packet Size', ' ACK Flag Count', ' Avg Fwd Segment Size', ' Fwd Packet Length Mean', ' Max Packet Length', ' Protocol', 'Fwd Packets/s', 'Total Length of Fwd Packets', ' Subflow Fwd Bytes', ' act_data_pkt_fwd']]
+
+df = pd.DataFrame(data,columns=[' Bwd Packets/s',' Total Fwd Packets','Total Length of Fwd Packets',' Flow Duration',' Total Length of Bwd Packets',' Total Backward Packets',' Protocol',' Inbound', ' Min Packet Length', ' Fwd Packet Length Min', ' Packet Length Mean', ' Fwd Packet Length Max', ' Average Packet Size', ' ACK Flag Count', ' Avg Fwd Segment Size', ' Fwd Packet Length Mean', ' Max Packet Length', ' Protocol', 'Fwd Packets/s', 'Total Length of Fwd Packets', ' Subflow Fwd Bytes', ' act_data_pkt_fwd'])
+corrMatrix = df.corr()
+print (corrMatrix)
+
+import pandas as pd
+import seaborn as sn
+import matplotlib.pyplot as plt
+
+plt.figure(figsize =(25,11))
+plt.title('Heatmap of a correlation matrix ', fontsize=24);
+
+
+corrMatrix = df.corr()
+sn.heatmap(corrMatrix, annot=True)
+
+plt.show()
+
+plt.figure(figsize=(20,16))
+sns.set(style="darkgrid")
+g1 = sns.countplot(x=' Label', hue=' Label', data=data_)
+gt = g1.twinx()
+gt = sns.pointplot(y='Flow Bytes/s', x=' Label', data=data_, color='black')
+gt.set_ylabel("Flow Bytes/s", fontsize=16)
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+sns.set(style="darkgrid")
+plt.figure(figsize=(9,9))
+result = data_.groupby([" Label"])[' Total Fwd Packets'].sum().reset_index().sort_values(' Total Fwd Packets')
+plt.stem(result[' Label'],result[' Total Fwd Packets'], use_line_collection = True)
+
+plt.title('Visualizing Total Fwd packets', fontsize=24);
+plt.show()
+
+
+sns.set(style="darkgrid")
+# Set the figure size
+plt.figure(figsize=(10, 7))
+
+# plot a bar chart
+df1=data_[[' Label',' Total Backward Packets']]
+result1 = df1.groupby([" Label"])[' Total Backward Packets'].sum().reset_index().sort_values(' Total Backward Packets')
+plt.title('Visualizing Total Backward Packets', fontsize=24);
+
+sns.barplot(
+    x=" Total Backward Packets",
+    y=" Label",
+    data=result1,
+    estimator=sum,
+    ci=None,
+    color='#CD5B45');
+
+
+plt.figure(figsize=(20,16))
+g1 = sns.countplot(x=' Label', data=data_,alpha=0.5)
+gt = g1.twinx()
+gt = sns.countplot(x=' Protocol', hue=' Label',alpha=0.7, data=data_)
+gt.set_ylabel(" Protocol", fontsize=16)
+
+
+plt.figure(figsize=(20,16))
+g1 = sns.countplot(x=' Label', data=data_,alpha=0.5)
+gt = g1.twinx()
+gt = sns.countplot(x=' Inbound', hue=' Label',alpha=0.7, data=data_)
+gt.set_ylabel(' Inbound', fontsize=16)
+
+plt.figure(figsize=(20,16))
+g1 = sns.countplot(x='SimillarHTTP', hue=' Label',alpha=0.7, data=data_)
+gt = g1.twinx()
+gt = sns.countplot(x=' Label', data=data_,alpha=0.4)
+
+
+
+df2 = data_[[' Bwd Packets/s',' Total Fwd Packets','Total Length of Fwd Packets',' Flow Duration',' Total Length of Bwd Packets',' Total Backward Packets',' Protocol',' Inbound', ' Min Packet Length', ' Fwd Packet Length Min', ' Packet Length Mean', ' Fwd Packet Length Max', ' Average Packet Size', ' ACK Flag Count', ' Avg Fwd Segment Size', ' Fwd Packet Length Mean', ' Max Packet Length', ' Protocol', 'Fwd Packets/s', 'Total Length of Fwd Packets', ' Subflow Fwd Bytes', ' act_data_pkt_fwd']]
+df2.dtypes
+
+scale = preprocessing.StandardScaler()
+X = scale.fit_transform(df2)
+X_norm = preprocessing.normalize(X)
+
+pca = PCA(n_components=2)
+principalComponents = pca.fit_transform(X_norm)
+Agglo = AgglomerativeClustering(n_clusters=8)
+Agglo.fit(principalComponents)
+tsne_ = TSNE(random_state = 42, n_components=2,verbose=0, perplexity=40, n_iter=600).fit_transform(principalComponents)
+plt.figure(figsize=(20,11))
+plt.scatter(tsne_[:, 0],tsne_[:, 1], c=Agglo.labels_,edgecolors='black')
+plt.gca().set_aspect('equal', 'datalim')
+plt.colorbar(boundaries=np.arange(11)-0.5).set_ticks(np.arange(8))
+plt.title('Visualizing DDoS attacks after Agglomerative Clustering', fontsize=24);
+plt.show()
+
+
+data_X = data_.drop([' Label','SimillarHTTP'], axis = 1)
+
+
+data_X.shape
+
+
+data_y = data_[' Label']
+
+
+data_y.shape
+
+#Encoding Label
+from sklearn.preprocessing import LabelEncoder
+le = LabelEncoder()
+data_y_trans = le.fit_transform(data_y)
+
+
+
+data_y_trans
+
+
+le_fid = LabelEncoder()
+le_fid.fit(data_X['Flow ID'])
+data_X['Flow ID'] = le_fid.fit_transform(data_X['Flow ID'])
+
+le_timestamp = LabelEncoder()
+le_timestamp.fit(data_X[' Timestamp'])
+data_X[' Timestamp'] = le_timestamp.fit_transform(data_X[' Timestamp'])
+
+
+
+from sklearn.ensemble import ExtraTreesClassifier
+
+model = ExtraTreesClassifier(random_state=42)
+model.fit(data_X, data_y_trans)
+
+
+model.feature_importances_
+
+plt.figure(figsize=(9,6))
+feature_importance_std = pd.Series(model.feature_importances_, index=data_X.columns)
+feature_importance_std.nlargest(20).plot(kind='bar', title='Standardised Dataset Feature Selection using ExtraTreesClassifier')
+
+
+data_new_20features_X = data_X[[' Bwd Packets/s',' Total Fwd Packets','Total Length of Fwd Packets',' Flow Duration',' Protocol',' Inbound', ' Min Packet Length', ' Fwd Packet Length Min', ' Packet Length Mean', ' Fwd Packet Length Max', ' Average Packet Size', ' ACK Flag Count', ' Avg Fwd Segment Size', ' Fwd Packet Length Mean', ' Max Packet Length', ' Protocol', 'Fwd Packets/s', 'Total Length of Fwd Packets', ' Subflow Fwd Bytes', ' act_data_pkt_fwd']]
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(data_X, data_y_trans, test_size = 0.30, random_state = 42)
+
+
+
+X_train.shape
+
+
+X_test.shape
+
+
+X_train.describe
+
+
+from sklearn.preprocessing import StandardScaler
+ss = StandardScaler()
+X_train_std = ss.fit_transform(X_train)
+X_test_std = ss.fit_transform(X_test)
+
+from sklearn.model_selection import train_test_split
+X_train_20, X_test_20, y_train_20, y_test_20 = train_test_split(data_new_20features_X, data_y_trans, test_size = 0.30, random_state = 42)
+
+
+from sklearn.preprocessing import StandardScaler
+ss_20 = StandardScaler()
+X_train_std_20 = ss_20.fit_transform(X_train_20)
+X_test_std_20 = ss_20.fit_transform(X_test_20)
+
+
+from sklearn.tree import DecisionTreeClassifier
+dt = DecisionTreeClassifier()
+dt.fit(X_train_std_20, y_train_20)
+
+
+
+dt_y_pred = dt.predict(X_test_std_20)
+
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
+print("Classification Report for Decision Tree: \n", classification_report(le.inverse_transform(y_test_20), le.inverse_transform(dt_y_pred)))
+
+
+dt_conf_mat = confusion_matrix(y_test_20, dt_y_pred)
+print("Decision Tree Confusion: \n", dt_conf_mat)
+
+
+# Matrix Confusion Obtained by Decision Tree
+
+matrix = dt_conf_mat.astype('float') / dt_conf_mat.sum(axis=1)[:, np.newaxis]
+
+# Build the plot
+plt.figure(figsize =(16,7))
+sns.set(font_scale=1.4)
+sns.heatmap(matrix, annot=True, annot_kws={'size':10},
+            cmap=plt.cm.Blues, linewidths=0.2)
+
+# Add
+class_names = ['BENIGN','NetBIOS', 'LDAP', 'Portmap', 'UDP', 'UDPLag', 'Syn']
+tick_marks = np.arange(len( class_names))
+tick_marks2 = tick_marks + 0.5
+plt.xticks(tick_marks, class_names, rotation=25)
+plt.yticks(tick_marks2, class_names, rotation=0)
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.title('Confusion matrix of Decision Tree')
+plt.show()
+
+
+
+#RoC curve Function
+
+def RoC_Curve(classifier, X_val, y_val, title):
+        """ RoC Curve for Classifier
+        Parameters:
+        ------------
+        classifier: Machine Learning Classifier to be Evaluated
+        X_val: Validation Dataset
+        y_val: Label/Target of Validation Dataset
+
+        Attributes:
+        Plots the Graph
+
+        Note: Some part of this Method code is taken
+            from Sklearn Website
+        """
+
+        lw = 2
+        n_classes = 7
+        y_test1 = to_categorical(y_val)
+        pred_RFC_proba = classifier.predict_proba(X_val)
+        y_score = pred_RFC_proba
+
+        # Compute ROC curve and ROC area for each class
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        for i in range(n_classes):
+            fpr[i], tpr[i], _ = roc_curve(y_test1[:, i], y_score[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+
+        # Compute micro-average ROC curve and ROC area
+        fpr["micro"], tpr["micro"], _ = roc_curve(y_test1.ravel(), y_score.ravel())
+        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+        # First aggregate all false positive rates
+        all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+
+        # Then interpolate all ROC curves at this points
+        mean_tpr = np.zeros_like(all_fpr)
+        for i in range(n_classes):
+            mean_tpr += interp(all_fpr, fpr[i], tpr[i])
+
+        # Finally average it and compute AUC
+        mean_tpr /= n_classes
+
+        fpr["macro"] = all_fpr
+        tpr["macro"] = mean_tpr
+        roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+        # Plot all ROC curves
+        plt.figure(figsize=(20,10))
+        plt.plot(fpr["micro"], tpr["micro"],
+                label='micro-average ROC curve (area = {0:0.2f})'
+                    ''.format(roc_auc["micro"]),
+                color='deeppink', linestyle=':', linewidth=4)
+
+        plt.plot(fpr["macro"], tpr["macro"],
+                label='macro-average ROC curve (area = {0:0.2f})'
+                    ''.format(roc_auc["macro"]),
+                color='navy', linestyle=':', linewidth=4)
+
+        list_class = ['BENIGN','NetBIOS', 'LDAP', 'Portmap', 'UDP', 'UDPLag', 'Syn']
+        for i in range(n_classes):
+            plt.plot(fpr[i], tpr[i], lw=lw,
+                    label='ROC curve of class {0} (area = {1:0.2f})'
+                    ''.format(list_class[i], roc_auc[i]))
+
+        plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(title)
+        plt.legend(loc="lower right")
+        plt.show()
+
+
+# RoC Curve
+from keras.utils.np_utils import to_categorical
+from sklearn.metrics import roc_curve, auc
+from scipy import interp
+from sklearn.metrics import roc_auc_score
+import matplotlib.pyplot as plt
+title = 'Receiver operating characteristic of Decision Tree'
+RoC_Curve(dt, X_test_std_20, y_test_20, title)
+
+
+acc_score_dt = accuracy_score(y_test_20, dt_y_pred)
+print("Accuracy Score for Decision Tree: \n", acc_score_dt*100)
+
+from sklearn.naive_bayes import GaussianNB
+
+
+
+gnb = GaussianNB()
+gnb.fit(X_train_std_20, y_train_20)
+gnb_y_pred = gnb.predict(X_test_std_20)
+
+print("Classification Report for Naive Bayes: \n", classification_report(le.inverse_transform(y_test_20), le.inverse_transform(gnb_y_pred)))
+
+
+gnb_conf_mat = confusion_matrix(y_test_20, gnb_y_pred)
+print("Naive Bayes Confusion Matrix: \n", gnb_conf_mat)
+
+
+# Obtain and reshape the data confusion matrix
+
+matrix = gnb_conf_mat.astype('float') / gnb_conf_mat.sum(axis=1)[:, np.newaxis]
+
+# Build the plot
+plt.figure(figsize =(16,7))
+sns.set(font_scale=1.4)
+sns.heatmap(matrix, annot=True, annot_kws={'size':10},
+            cmap=plt.cm.Reds, linewidths=0.2)
+
+#  Add tags to the plot
+class_names = ['BENIGN','NetBIOS', 'LDAP', 'Portmap', 'UDP', 'UDPLag', 'Syn']
+tick_marks = np.arange(len( class_names))
+tick_marks2 = tick_marks + 0.5
+plt.xticks(tick_marks, class_names, rotation=25)
+plt.yticks(tick_marks2, class_names, rotation=0)
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.title('Confusion matrix model in Naive Bayes')
+plt.show()
+
+
+
+title = 'Receiver operating characteristic of Naive Bayes'
+RoC_Curve(gnb, X_test_std_20, y_test_20, title)
+
+
+
+acc_score_gnb = accuracy_score(y_test_20, gnb_y_pred)
+print("Accuracy Score for Naive: \n", acc_score_gnb*100)
+
+### 1. Random Forest Classification
+from sklearn.ensemble import RandomForestClassifier
+rf = RandomForestClassifier()
+rf.fit(X_train_std_20, y_train_20)
+rf_y_pred = rf.predict(X_test_std_20)
+
+
+rf_y_pred
+
+print("Classification Report for Random Forest: \n", classification_report(le.inverse_transform(y_test_20), le.inverse_transform(rf_y_pred)))
+
+
+
+
+rf_conf_mat = confusion_matrix(y_test_20, rf_y_pred)
+print("Random Forest Confusion: \n", rf_conf_mat)
+
+
+matrix = rf_conf_mat.astype('float') / rf_conf_mat.sum(axis=1)[:, np.newaxis]
+
+# Build the plot
+plt.figure(figsize =(16,7))
+sns.set(font_scale=1.4)
+sns.heatmap(matrix, annot=True, annot_kws={'size':10},
+            cmap=plt.cm.Greens, linewidths=0.2)
+
+# Add tags to the plot
+class_names = ['BENIGN','NetBIOS', 'LDAP', 'Portmap', 'UDP', 'UDPLag', 'Syn']
+tick_marks = np.arange(len( class_names))
+tick_marks2 = tick_marks + 0.5
+plt.xticks(tick_marks, class_names, rotation=25)
+plt.yticks(tick_marks2, class_names, rotation=0)
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.title('Confusion Matrix of Random Forest Classifier')
+plt.show()
+
+
+
+
+title = 'Receiver operating characteristic of Random Forest'
+RoC_Curve(rf, X_test_std_20, y_test_20, title)
+
+acc_score = accuracy_score(y_test_20, rf_y_pred)
+print("Accuracy Score for Random_Forest: \n", acc_score*100)
+
+import matplotlib.pyplot as plt
+
+Country = ['Random_Forest','Decision Tree','Naive Bayes']
+GDP_Per_Capita = [acc_score,acc_score_dt,acc_score_gnb]
+plt.figure(figsize=(10,10))
+New_Colors = ['green','blue','purple']
+plt.bar(Country, GDP_Per_Capita, color=New_Colors)
+plt.title('Decision Tree Vs Random Forest VS Naive Bayes', fontsize=14)
+plt.xlabel('Modele', fontsize=14)
+plt.ylabel('Accuracy', fontsize=14)
+plt.grid(True)
+plt.show()
